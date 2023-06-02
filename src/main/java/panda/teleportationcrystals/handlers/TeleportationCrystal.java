@@ -43,11 +43,8 @@ public class TeleportationCrystal implements Listener {
 
         crystalItemMaterial = crystalMaterial;
 
-        String crystalNameString = (String) config.getString("crystal_name");
-        crystalItemName = crystalNameString;
-
-        String crystalNameColorString = (String) config.getString("crystal_name_color");
-        NamedTextColor crystalNameColor = convertToNamedTextColor(crystalNameColorString);
+        crystalItemName = (String) config.getString("crystal_name");;
+        NamedTextColor crystalNameColor = convertToNamedTextColor((String) config.getString("crystal_name_color"));
 
         if (crystalNameColor == null) {
             Bukkit.getLogger().warning("[TeleportationCrystals] 'crystal_name_color' in config.yml is not a valid color. (Default color will be used)");

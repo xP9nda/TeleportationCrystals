@@ -1,7 +1,6 @@
 package panda.teleportationcrystals;
 
 import org.bukkit.Bukkit;
-import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 import panda.teleportationcrystals.handlers.TeleportationCrystal;
 
@@ -19,10 +18,6 @@ public final class TeleportationCrystals extends JavaPlugin {
         TeleportationCrystal tpCrystal = new TeleportationCrystal(this);
         this.getServer().getPluginManager().registerEvents(tpCrystal, this);
 
-//        try {
-//            PaperCommandManager<CommandSender>
-//
-//        }
     }
 
     @Override
