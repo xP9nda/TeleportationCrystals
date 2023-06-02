@@ -2,6 +2,7 @@
 
 ## crystal_item (the item used for the teleportation crystal)
 # default: EMERALD
+# accepted: see https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Material.html for all acceptable items
 crystal_item: EMERALD
 
 ## crystal_name (the name of the teleportation crystal)
@@ -10,11 +11,25 @@ crystal_name: "Teleportation Crystal"
 
 ## crystal_name_color (the color of the teleportation crystal's name)
 # default: BLUE
-# accepted:
+# accepted: "AQUA", "BLACK", "BLUE", "DARK_AQUA", "DARK_BLUE", "DARK_GRAY", "DARK_GREEN", "DARK_PURPLE", "DARK_RED", "GOLD", "GRAY", "GREEN", "LIGHT_PURPLE", "RED", "WHITE", "YELLOW"
+crystal_name_color: "BLUE"
 
-crystal_name_color: BLUE
+## crystal_command_message (the message that the player who is given the crystal through the /teleportationcrystal command should receive)
+# default: "You have been given a teleport crystal."
+# leave as an empty string ("") if you want no message to send
+crystal_command_message: "You have been given a teleport crystal."
 
-## glowing (if the teleportation crystal item should be glowing)
-# default: true
-# accepted: true, false
-glowing: true
+## crystal_position_updated_message (the message to send to the player whenever a crystal's position is updated)
+# default: "Teleport crystal position updated."
+# leave as an empty string ("") if you want no message to send
+crystal_position_updated_message: "Teleport crystal position updated."
+
+## crystal_no_position_message (the message to send to the player if they try to use a crystal with no set location)
+# default: "This crystal has no saved location. Shift right click while holding the crystal to set a location."
+# leave as an empty string ("") if you want no message to send
+crystal_no_position_message: "This crystal has no saved location. Shift right click while holding the crystal to set a location."
+
+## crystal_teleport_message (the message to send whenever the player teleports using a teleport crystal)
+# default: "Woooosh..."
+# leave as an empty string ("") if you want no message to send
+crystal_teleport_message: "Woooosh..."
