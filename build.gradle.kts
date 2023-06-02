@@ -25,16 +25,9 @@ bukkit {
 
     // API version (should be set for 1.13+)
     apiVersion = "1.13"
-
-    commands {
-        register("teleportationcrystal")
-        register("teleportationcrystalreload")
-    }
 }
 
 dependencies {
-    bukkitLibrary("com.google.code.gson", "gson", "2.8.7") // Bukkit only
-
     compileOnly("io.papermc.paper:paper-api:1.19.4-R0.1-SNAPSHOT")
 
     implementation("cloud.commandframework:cloud-paper:1.8.3")

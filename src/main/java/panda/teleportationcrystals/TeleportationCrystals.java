@@ -14,7 +14,6 @@ public final class TeleportationCrystals extends JavaPlugin {
     @Override
     public void onEnable() {
         // Plugin startup logic
-        Bukkit.getLogger().info("[TeleportationCrystals] Starting up...");
 
         // Config
         saveDefaultConfig();
@@ -44,6 +43,5 @@ public final class TeleportationCrystals extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
-        Bukkit.getLogger().info("[TeleportationCrystals] Shutting down...");
     }
 }

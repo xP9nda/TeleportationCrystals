@@ -1,5 +1,6 @@
 package panda.teleportationcrystals.handlers;
 
+import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandMethod;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -93,7 +94,7 @@ public class TeleportationCrystal implements Listener {
     }
 
     @CommandMethod("teleportationcrystal|teleportcrystal|tpcrystal <player>")
-    private void onTeleportationCrystal(Player commandSender, Player player) {
+    private void onTeleportationCrystal(Player commandSender, @Argument("player") Player player ) {
         Bukkit.getLogger().info(commandSender.getName());
 
         player.getInventory().addItem(this.teleportationCrystalItem);
