@@ -1,0 +1,4 @@
+name: TeleportationCrystals
+version: '${version}'
+main: panda.teleportationcrystals.TeleportationCrystals
+api-version: 1.19

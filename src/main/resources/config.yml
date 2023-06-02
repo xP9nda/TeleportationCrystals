@@ -1,0 +1,20 @@
+#### TeleportationCrystals config
+
+## crystal_item (the item used for the teleportation crystal)
+# default: EMERALD
+crystal_item: EMERALD
+
+## crystal_name (the name of the teleportation crystal)
+# default: "Teleportation Crystal"
+crystal_name: "Teleportation Crystal"
+
+## crystal_name_color (the color of the teleportation crystal's name)
+# default: BLUE
+# accepted:
+
+crystal_name_color: BLUE
+
+## glowing (if the teleportation crystal item should be glowing)
+# default: true
+# accepted: true, false
+glowing: true
