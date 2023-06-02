@@ -33,15 +33,14 @@ public class TeleportationCrystal implements Listener {
     private String crystalNoPositionMessage;
     private String crystalTeleportMessage;
 
-    private FileConfiguration config;
-    private TeleportationCrystals tpCrystalsLoader;
+    private final TeleportationCrystals tpCrystalsLoader;
 
     private void ReloadTeleportationCrystal() {
-        config = tpCrystalsLoader.getConfig();
+        FileConfiguration config = tpCrystalsLoader.getConfig();
 
         // Set up the item
         // Material
-        String crystalString = (String) config.getString("crystal_item");
+        String crystalString = config.getString("crystal_item");
         crystalMaterial = Material.matchMaterial(crystalString);
         if (crystalMaterial == null) {
             tpCrystalsLoader.getSLF4JLogger().warn("'crystal_item' in config.yml is not a valid color. (Default item will be used)");
@@ -49,14 +48,14 @@ public class TeleportationCrystal implements Listener {
         }
 
         // Item name
-        crystalItemName = (String) config.getString("crystal_name");
-        if (crystalItemName.isEmpty()) {
+        crystalItemName = config.getString("crystal_name");
+        if (crystalItemName == null || crystalItemName.isEmpty()) {
             tpCrystalsLoader.getSLF4JLogger().warn("'crystal_name' in config.yml is not a valid color. (Default name will be used)");
             crystalItemName = "Teleportation Crystal";
         }
 
         // Name color
-        NamedTextColor crystalNameColor = convertToNamedTextColor(config.getString("crystal_name_color"));
+        crystalNameColor = convertToNamedTextColor(config.getString("crystal_name_color"));
         if (crystalNameColor == null) {
             tpCrystalsLoader.getSLF4JLogger().warn("'crystal_name_color' in config.yml is not a valid color. (Default color will be used)");
             crystalNameColor = NamedTextColor.BLUE;
