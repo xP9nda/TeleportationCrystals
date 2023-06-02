@@ -5,10 +5,7 @@ import cloud.commandframework.annotations.CommandMethod;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -23,60 +20,59 @@ import java.util.List;
 
 public class TeleportationCrystal implements Listener {
 
-    private final ItemStack teleportationCrystalItem;
+    private ItemStack teleportationCrystalItem;
     private final NamespacedKey itemKey;
     private final NamespacedKey locationKey;
     private final NamespacedKey worldKey;
 
-    private final String crystalItemName;
-    private final NamedTextColor crystalItemNameColor;
-    private final String receivedCrystalMessage;
-    private final String crystalPositionUpdatedMessage;
-    private final String crystalNoPositionMessage;
+    private String crystalItemName;
+    private NamedTextColor crystalNameColor;
+    private Material crystalMaterial;
+    private String receivedCrystalMessage;
+    private String crystalPositionUpdatedMessage;
+    private String crystalNoPositionMessage;
+    private String crystalTeleportMessage;
 
     private FileConfiguration config;
     private TeleportationCrystals tpCrystalsLoader;
 
-    // Constructor method
-    public TeleportationCrystal(TeleportationCrystals loader) {
-        config = loader.getConfig();
-        tpCrystalsLoader = loader;
-
-        // Create the item keys
-        this.itemKey = new NamespacedKey(loader, "item");
-        this.locationKey = new NamespacedKey(loader, "location");
-        this.worldKey = new NamespacedKey(loader, "world");
+    private void ReloadTeleportationCrystal() {
+        config = tpCrystalsLoader.getConfig();
 
         // Set up the item
+        // Material
         String crystalString = (String) config.getString("crystal_item");
-        Material crystalMaterial = Material.matchMaterial(crystalString);
-
+        crystalMaterial = Material.matchMaterial(crystalString);
         if (crystalMaterial == null) {
-            Bukkit.getLogger().warning("[TeleportationCrystals] 'crystal_item' in config.yml is not a valid item. (Default item will be used)");
+            tpCrystalsLoader.getSLF4JLogger().warn("'crystal_item' in config.yml is not a valid color. (Default item will be used)");
             crystalMaterial = Material.EMERALD;
         }
 
-        String crystalItemNameString = (String) config.getString("crystal_name");
-
-        if (crystalItemNameString.isEmpty()) {
-            Bukkit.getLogger().warning("[TeleportationCrystals] 'crystal_name' in config.yml is empty. (Default name will be used)");
-            crystalItemNameString = "Teleportation Crystal";
+        // Item name
+        crystalItemName = (String) config.getString("crystal_name");
+        if (crystalItemName.isEmpty()) {
+            tpCrystalsLoader.getSLF4JLogger().warn("'crystal_name' in config.yml is not a valid color. (Default name will be used)");
+            crystalItemName = "Teleportation Crystal";
         }
 
-        crystalItemName = crystalItemNameString;
-
+        // Name color
         NamedTextColor crystalNameColor = convertToNamedTextColor(config.getString("crystal_name_color"));
-
         if (crystalNameColor == null) {
-            Bukkit.getLogger().warning("[TeleportationCrystals] 'crystal_name_color' in config.yml is not a valid color. (Default color will be used)");
+            tpCrystalsLoader.getSLF4JLogger().warn("'crystal_name_color' in config.yml is not a valid color. (Default color will be used)");
             crystalNameColor = NamedTextColor.BLUE;
         }
 
-        crystalItemNameColor = crystalNameColor;
+        // Messages
+        receivedCrystalMessage = config.getString("crystal_command_message");
+        crystalPositionUpdatedMessage = config.getString("crystal_position_updated_message");
+        crystalNoPositionMessage = config.getString("crystal_no_position_message");
+        crystalTeleportMessage = config.getString("crystal_teleport_message");
+    }
 
+    private void SetupTeleportationCrystalItem() {
         this.teleportationCrystalItem = new ItemStack(crystalMaterial);
         this.teleportationCrystalItem.editMeta(itemMeta -> {
-            itemMeta.displayName(Component.text(crystalItemName).color(crystalItemNameColor));
+            itemMeta.displayName(Component.text(crystalItemName).color(crystalNameColor));
             itemMeta.lore(List.of(
                     Component.text("Teleport Location: Not Set").decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE),
                     Component.text("Shift Right Click to set location").decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE),
@@ -87,16 +83,24 @@ public class TeleportationCrystal implements Listener {
             itemMeta.getPersistentDataContainer().set(this.worldKey, PersistentDataType.STRING, "");
             itemMeta.getPersistentDataContainer().set(this.itemKey, PersistentDataType.STRING, "panda.teleportation_crystal");
         });
+    }
 
-        receivedCrystalMessage = config.getString("crystal_command_message");
-        crystalPositionUpdatedMessage = config.getString("crystal_position_updated_message");
-        crystalNoPositionMessage = config.getString("crystal_no_position_message");
+    // Constructor method
+    public TeleportationCrystal(TeleportationCrystals loader) {
+        tpCrystalsLoader = loader;
+
+        ReloadTeleportationCrystal();
+
+        // Create the item keys
+        this.itemKey = new NamespacedKey(loader, "item");
+        this.locationKey = new NamespacedKey(loader, "location");
+        this.worldKey = new NamespacedKey(loader, "world");
+
+        SetupTeleportationCrystalItem();
     }
 
     @CommandMethod("teleportationcrystal|teleportcrystal|tpcrystal <player>")
     private void onTeleportationCrystal(Player commandSender, @Argument("player") Player player ) {
-        Bukkit.getLogger().info(commandSender.getName());
-
         player.getInventory().addItem(this.teleportationCrystalItem);
 
         // Check if the receiver should be sent a message
@@ -107,8 +111,10 @@ public class TeleportationCrystal implements Listener {
 
     @CommandMethod("teleportationcrystalreload|teleportcrystalreload|tpcrystalreload")
     private void onTeleportationCrystalReload(Player commandSender) {
-        Bukkit.getLogger().info("reload config!!!");
+        tpCrystalsLoader.getSLF4JLogger().info("Config reloaded");
         tpCrystalsLoader.reloadConfig();
+        ReloadTeleportationCrystal();
+        SetupTeleportationCrystalItem();
     }
 
     @EventHandler
@@ -153,6 +159,7 @@ public class TeleportationCrystal implements Listener {
                 player.sendMessage(Component.text(crystalPositionUpdatedMessage));
             }
 
+            tpCrystalsLoader.getSLF4JLogger().info("Player %s updated location of teleportation crystal to (%s) %s %s %s".formatted(player.getName(), player.getWorld().getName(), posX, posY, posZ));
             return;
         }
 
@@ -171,12 +178,17 @@ public class TeleportationCrystal implements Listener {
         Location crystalTeleportLocation = new Location(Bukkit.getWorld(savedWorld), savedLocation[0], savedLocation[1], savedLocation[2]);
 
         player.teleportAsync(crystalTeleportLocation);
+        tpCrystalsLoader.getSLF4JLogger().info("Player %s teleported to (%s) %s %s %s using a teleportation crystal".formatted(player.getName(), savedWorld, savedLocation[0], savedLocation[1], savedLocation[2]));
+
+        if (!crystalTeleportMessage.isEmpty()) {
+            player.sendMessage(Component.text(crystalTeleportMessage));
+        }
     }
 
     private NamedTextColor convertToNamedTextColor(String colorString) {
         // Convert the string to a NamedTextColor object
         try {
-            return NamedTextColor.NAMES.value(colorString.toUpperCase());
+            return NamedTextColor.NAMES.valueOr(colorString, NamedTextColor.BLUE);
         } catch (IllegalArgumentException e) {
             return null;
         }
