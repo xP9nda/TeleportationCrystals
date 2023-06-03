@@ -8,6 +8,23 @@ crystal_item: EMERALD
 # accepted: see https://docs.advntr.dev/minimessage/format.html for color code usage
 crystal_name: "<#75A1BF>Teleportation Crystal"
 
+## crystal_recipe (the recipe used to craft a teleportation crystal)
+# accepted: see https://jd.papermc.io/paper/1.19/org/bukkit/Material.html for all acceptable items
+# leave as empty text (tpcrystal_empty_item) for no item to be used, defined in the order left, middle, right for each row
+crystal_recipe:
+  # First row
+  - tpcrystal_empty_item
+  - EMERALD
+  - tpcrystal_empty_item
+  # Second row
+  - EMERALD
+  - NETHER_STAR
+  - EMERALD
+  # Third row
+  - tpcrystal_empty_item
+  - EMERALD
+  - tpcrystal_empty_item
+
 ## crystal_default_uses (the amount of uses each crystal gets by default)
 crystal_default_uses: 3
 

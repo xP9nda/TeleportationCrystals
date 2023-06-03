@@ -1,5 +1,5 @@
 // TODO:
-//  - Add a recipe to make a teleportation crystal
+//  - fix crafting recipe stacking (uuid is the same as the crafting recipe gives same itemstack every time)
 
 package panda.teleportationcrystals.handlers;
 
@@ -24,8 +24,10 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.persistence.PersistentDataType;;
 import panda.teleportationcrystals.TeleportationCrystals;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -37,6 +39,7 @@ public class TeleportationCrystal implements Listener {
     private final NamespacedKey worldKey;
     private final NamespacedKey usesKey;
     private final NamespacedKey crystalUUIDKey;
+    private final NamespacedKey crystalCraftingRecipeKey;
 
     private String crystalItemName;
     private Material crystalMaterial;
@@ -49,6 +52,7 @@ public class TeleportationCrystal implements Listener {
     private final TeleportationCrystals tpCrystalsLoader;
     private List<String> locationUnsetLoreStrings;
     private List<String> locationSetLoreStrings;
+    private List<String> crystalRecipeStrings;
 
     private String receiveSoundString;
     private String setLocationSoundString;
@@ -68,15 +72,15 @@ public class TeleportationCrystal implements Listener {
     public TeleportationCrystal(TeleportationCrystals loader) {
         tpCrystalsLoader = loader;
 
-        reloadTeleportationCrystal();
-
         // Create the item keys
         this.itemKey = new NamespacedKey(loader, "item");
         this.locationKey = new NamespacedKey(loader, "location");
         this.worldKey = new NamespacedKey(loader, "world");
         this.usesKey = new NamespacedKey(loader, "uses");
         this.crystalUUIDKey = new NamespacedKey(loader, "uuid");
+        this.crystalCraftingRecipeKey = new NamespacedKey(loader, "panda.teleportationcrystalrecipe");
 
+        reloadTeleportationCrystal();
         setupTeleportationCrystalItem();
     }
 
@@ -108,6 +112,7 @@ public class TeleportationCrystal implements Listener {
         locationSetLoreStrings = config.getStringList("crystal_lore_location_set");
         reloadMessage = config.getString("reload_message");
         crystalDefaultUses = config.getInt("crystal_default_uses");
+        crystalRecipeStrings = config.getStringList("crystal_recipe");
 
         receiveSoundString = config.getString("sound_receive");
         setLocationSoundString = config.getString("sound_setting_location");
@@ -146,9 +151,13 @@ public class TeleportationCrystal implements Listener {
             tpCrystalsLoader.getSLF4JLogger().warn("'sound_crystal_breaks' in config.yml is not a valid sound. (Default sound will be used)");
             breakSound = Sound.ENTITY_ENDER_EYE_DEATH;
         }
+
+        // Remove the old recipe
+        tpCrystalsLoader.getServer().removeRecipe(this.crystalCraftingRecipeKey);
     }
 
     private void setupTeleportationCrystalItem() {
+        // Setup item stack
         this.teleportationCrystalItem = new ItemStack(crystalMaterial);
         this.teleportationCrystalItem.editMeta(itemMeta -> {
             itemMeta.displayName(miniMsg.deserialize(crystalItemName).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
@@ -157,17 +166,44 @@ public class TeleportationCrystal implements Listener {
             itemMeta.getPersistentDataContainer().set(this.worldKey, PersistentDataType.STRING, "");
             itemMeta.getPersistentDataContainer().set(this.itemKey, PersistentDataType.STRING, "panda.teleportation_crystal");
         });
-    }
 
-    @CommandMethod("teleportationcrystal|teleportcrystal|tpcrystal give <player> [uses]")
-    @CommandPermission("panda.teleportationcrystals.give")
-    private void onTeleportationCrystalGive(Player commandSender, @Argument("player") Player player , @Argument("uses") @Range(min = "1", max = "5000") Integer uses) {
-        // Check if the uses is defined
-        if (uses == null) {
-            uses = crystalDefaultUses;
+        // Setup crafting recipe
+        ShapedRecipe teleportationCrystalRecipe = new ShapedRecipe(this.crystalCraftingRecipeKey, getNewUsesTeleportationCrystalItemStack(crystalDefaultUses));
+        teleportationCrystalRecipe.shape("012", "345", "678");
+
+        boolean validRecipe = true;
+        for ( int i = 0 ; i < crystalRecipeStrings.toArray().length ; i++ ) {
+            String currentRecipeItem = crystalRecipeStrings.get(i);
+
+            // Current recipe item is defined as nothing
+            if (currentRecipeItem.equals("tpcrystal_empty_item")) {
+                continue;
+            }
+
+            // Current recipe item is a material
+            Material currentRecipeItemMaterial = Material.matchMaterial(crystalRecipeStrings.get(i));
+            if (currentRecipeItemMaterial == null) {
+                tpCrystalsLoader.getSLF4JLogger().warn("Recipe material '%s' in 'crystals_recipe' in config.yml is an invalid item. Recipe will not be added."
+                        .formatted(currentRecipeItem)
+                );
+                validRecipe = false;
+                return;
+            }
+
+            String indexString = Integer.toString(i);
+            Character recipeCharacterIdentifier = indexString.charAt(0);
+            teleportationCrystalRecipe.setIngredient(recipeCharacterIdentifier, currentRecipeItemMaterial);
         }
 
-        // Create a clone of the original item and give it a random UUID to ensure non stack-ability as well as setting the number of uses
+        // Check if the recipe is valid and if it is, add it as a recipe
+        if (!validRecipe) {
+            return;
+        }
+        tpCrystalsLoader.getServer().addRecipe(teleportationCrystalRecipe);
+    }
+
+    // Create a clone of the original crystal and give it a random UUID to ensure non stack-ability as well as set the number of uses
+    private ItemStack getNewUsesTeleportationCrystalItemStack(int uses) {
         ItemStack newItemClone = this.teleportationCrystalItem.clone();
         Integer finalUses = uses;
 
@@ -186,6 +222,18 @@ public class TeleportationCrystal implements Listener {
             itemMeta.getPersistentDataContainer().set(this.crystalUUIDKey, PersistentDataType.STRING, UUID.randomUUID().toString());
         });
 
+        return newItemClone;
+    }
+
+    @CommandMethod("teleportationcrystal|teleportcrystal|tpcrystal give <player> [uses]")
+    @CommandPermission("panda.teleportationcrystals.give")
+    private void onTeleportationCrystalGive(Player commandSender, @Argument("player") Player player , @Argument("uses") @Range(min = "1", max = "5000") Integer uses) {
+        // Check if the uses is defined
+        if (uses == null) {
+            uses = crystalDefaultUses;
+        }
+
+        ItemStack newItemClone = getNewUsesTeleportationCrystalItemStack(uses);
         player.getInventory().addItem(newItemClone);
 
         // Check if the receiver should be sent a message
@@ -193,7 +241,7 @@ public class TeleportationCrystal implements Listener {
             player.sendMessage(miniMsg.deserialize(
                     receivedCrystalMessage,
                     Placeholder.unparsed("player", commandSender.getName()),
-                    Placeholder.unparsed("uses", String.valueOf(finalUses))
+                    Placeholder.unparsed("uses", String.valueOf(uses))
             ));
         }
 
