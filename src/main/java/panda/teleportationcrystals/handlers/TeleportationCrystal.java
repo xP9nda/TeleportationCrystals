@@ -2,21 +2,28 @@ package panda.teleportationcrystals.handlers;
 
 import cloud.commandframework.annotations.Argument;
 import cloud.commandframework.annotations.CommandMethod;
+import cloud.commandframework.annotations.CommandPermission;
+import cloud.commandframework.annotations.specifier.Range;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.*;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.w3c.dom.Text;
 import panda.teleportationcrystals.TeleportationCrystals;
 
 import java.util.List;
+import java.util.UUID;
 
 public class TeleportationCrystal implements Listener {
 
@@ -24,18 +31,40 @@ public class TeleportationCrystal implements Listener {
     private final NamespacedKey itemKey;
     private final NamespacedKey locationKey;
     private final NamespacedKey worldKey;
+    private final NamespacedKey usesKey;
+    private final NamespacedKey crystalUUIDKey;
 
     private String crystalItemName;
-    private NamedTextColor crystalNameColor;
     private Material crystalMaterial;
     private String receivedCrystalMessage;
     private String crystalPositionUpdatedMessage;
     private String crystalNoPositionMessage;
     private String crystalTeleportMessage;
-
+    private String reloadMessage;
+    private int crystalDefaultUses;
     private final TeleportationCrystals tpCrystalsLoader;
+    private List<String> locationUnsetLoreStrings;
+    private List<String> locationSetLoreStrings;
 
-    private void ReloadTeleportationCrystal() {
+    private final MiniMessage miniMsg = MiniMessage.miniMessage();
+
+    // Constructor method
+    public TeleportationCrystal(TeleportationCrystals loader) {
+        tpCrystalsLoader = loader;
+
+        reloadTeleportationCrystal();
+
+        // Create the item keys
+        this.itemKey = new NamespacedKey(loader, "item");
+        this.locationKey = new NamespacedKey(loader, "location");
+        this.worldKey = new NamespacedKey(loader, "world");
+        this.usesKey = new NamespacedKey(loader, "uses");
+        this.crystalUUIDKey = new NamespacedKey(loader, "uuid");
+
+        setupTeleportationCrystalItem();
+    }
+
+    private void reloadTeleportationCrystal() {
         FileConfiguration config = tpCrystalsLoader.getConfig();
 
         // Set up the item
@@ -51,14 +80,7 @@ public class TeleportationCrystal implements Listener {
         crystalItemName = config.getString("crystal_name");
         if (crystalItemName == null || crystalItemName.isEmpty()) {
             tpCrystalsLoader.getSLF4JLogger().warn("'crystal_name' in config.yml is not a valid color. (Default name will be used)");
-            crystalItemName = "Teleportation Crystal";
-        }
-
-        // Name color
-        crystalNameColor = convertToNamedTextColor(config.getString("crystal_name_color"));
-        if (crystalNameColor == null) {
-            tpCrystalsLoader.getSLF4JLogger().warn("'crystal_name_color' in config.yml is not a valid color. (Default color will be used)");
-            crystalNameColor = NamedTextColor.BLUE;
+            crystalItemName = "<green>Teleportation Crystal";
         }
 
         // Messages
@@ -66,17 +88,16 @@ public class TeleportationCrystal implements Listener {
         crystalPositionUpdatedMessage = config.getString("crystal_position_updated_message");
         crystalNoPositionMessage = config.getString("crystal_no_position_message");
         crystalTeleportMessage = config.getString("crystal_teleport_message");
+        locationUnsetLoreStrings = config.getStringList("crystal_lore_location_unset");
+        locationSetLoreStrings = config.getStringList("crystal_lore_location_set");
+        reloadMessage = config.getString("reload_message");
+        crystalDefaultUses = config.getInt("crystal_default_uses");
     }
 
-    private void SetupTeleportationCrystalItem() {
+    private void setupTeleportationCrystalItem() {
         this.teleportationCrystalItem = new ItemStack(crystalMaterial);
         this.teleportationCrystalItem.editMeta(itemMeta -> {
-            itemMeta.displayName(Component.text(crystalItemName).color(crystalNameColor));
-            itemMeta.lore(List.of(
-                    Component.text("Teleport Location: Not Set").decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE),
-                    Component.text("Shift Right Click to set location").decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE),
-                    Component.text("Right Click to teleport").decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
-            ));
+            itemMeta.displayName(miniMsg.deserialize(crystalItemName).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
 
             itemMeta.getPersistentDataContainer().set(this.locationKey, PersistentDataType.INTEGER_ARRAY, new int[] { 0, 0, 0 });
             itemMeta.getPersistentDataContainer().set(this.worldKey, PersistentDataType.STRING, "");
@@ -84,40 +105,61 @@ public class TeleportationCrystal implements Listener {
         });
     }
 
-    // Constructor method
-    public TeleportationCrystal(TeleportationCrystals loader) {
-        tpCrystalsLoader = loader;
+    @CommandMethod("teleportationcrystal|teleportcrystal|tpcrystal give <player> [uses]")
+    @CommandPermission("panda.teleportationcrystals.give")
+    private void onTeleportationCrystalGive(Player commandSender, @Argument("player") Player player , @Argument("uses") @Range(min = "1", max = "5000") Integer uses) {
+        // Check if the uses is defined
+        if (uses == null) {
+            uses = crystalDefaultUses;
+        }
 
-        ReloadTeleportationCrystal();
+        // Create a clone of the original item and give it a random UUID to ensure non stack-ability as well as setting the number of uses
+        ItemStack newItemClone = this.teleportationCrystalItem.clone();
+        Integer finalUses = uses;
 
-        // Create the item keys
-        this.itemKey = new NamespacedKey(loader, "item");
-        this.locationKey = new NamespacedKey(loader, "location");
-        this.worldKey = new NamespacedKey(loader, "world");
+        newItemClone.editMeta(itemMeta -> {
+            itemMeta.getPersistentDataContainer().set(this.usesKey, PersistentDataType.INTEGER, finalUses);
 
-        SetupTeleportationCrystalItem();
-    }
+            itemMeta.lore(
+                    locationUnsetLoreStrings.stream().map(
+                            it -> miniMsg.deserialize(
+                                    it,
+                                    Placeholder.unparsed("uses", String.valueOf(finalUses))
+                            ).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+                    ).toList()
+            );
 
-    @CommandMethod("teleportationcrystal|teleportcrystal|tpcrystal <player>")
-    private void onTeleportationCrystal(Player commandSender, @Argument("player") Player player ) {
-        player.getInventory().addItem(this.teleportationCrystalItem);
+            itemMeta.getPersistentDataContainer().set(this.crystalUUIDKey, PersistentDataType.STRING, UUID.randomUUID().toString());
+        });
+
+        player.getInventory().addItem(newItemClone);
 
         // Check if the receiver should be sent a message
         if (!receivedCrystalMessage.isEmpty()) {
-            player.sendMessage(Component.text(receivedCrystalMessage));
+            player.sendMessage(miniMsg.deserialize(
+                    receivedCrystalMessage,
+                    Placeholder.unparsed("player", commandSender.getName()),
+                    Placeholder.unparsed("uses", String.valueOf(finalUses))
+            ));
         }
     }
 
-    @CommandMethod("teleportationcrystalreload|teleportcrystalreload|tpcrystalreload")
+    @CommandMethod("teleportationcrystal|teleportcrystal|tpcrystal reload")
+    @CommandPermission("panda.teleportationcrystals.reload")
     private void onTeleportationCrystalReload(Player commandSender) {
         tpCrystalsLoader.getSLF4JLogger().info("Config reloaded");
         tpCrystalsLoader.reloadConfig();
-        ReloadTeleportationCrystal();
-        SetupTeleportationCrystalItem();
+        reloadTeleportationCrystal();
+        setupTeleportationCrystalItem();
+
+        // Check if the reload message should be sent
+        if (!reloadMessage.isEmpty()) {
+            commandSender.sendMessage(miniMsg.deserialize(reloadMessage));
+        }
     }
 
     @EventHandler
-    private void OnInteract(PlayerInteractEvent event) {
+    private void onInteract(PlayerInteractEvent event) {
         if (event.getHand() == EquipmentSlot.OFF_HAND || event.getItem() == null) {
             return;
         }
@@ -131,31 +173,44 @@ public class TeleportationCrystal implements Listener {
 
         event.setCancelled(true);
 
-        // Get the player
+        // Get the player and their location
         Player player = event.getPlayer();
+        Location playerLocation = player.getLocation();
+        int posX = playerLocation.getBlockX();
+        int posY = playerLocation.getBlockY();
+        int posZ = playerLocation.getBlockZ();
+
+        // Get the remaining uses of the crystal
+        int remainingUses = item.getItemMeta().getPersistentDataContainer().get(usesKey, PersistentDataType.INTEGER);
 
         // Check if the player is sneaking
         if (player.isSneaking()) {
             // Set the teleport location
-            Location playerLocation = player.getLocation();
-            int posX = playerLocation.getBlockX();
-            int posY = playerLocation.getBlockY();
-            int posZ = playerLocation.getBlockZ();
+            int finalRemainingUses1 = remainingUses;
 
             item.editMeta(itemMeta -> {
                 itemMeta.getPersistentDataContainer().set(locationKey, PersistentDataType.INTEGER_ARRAY, new int[] { posX, posY, posZ });
                 itemMeta.getPersistentDataContainer().set(worldKey, PersistentDataType.STRING, playerLocation.getWorld().getName());
 
-                itemMeta.lore(List.of(
-                        Component.text("Teleport Location: %s, %s, %s".formatted(posX, posY, posZ)).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE),
-                        Component.text("Shift Right Click to set location").decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE),
-                        Component.text("Right Click to teleport").decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
-                ));
+                itemMeta.addEnchant(Enchantment.CHANNELING, 1, true);
+                itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+
+                itemMeta.lore(
+                        locationSetLoreStrings.stream().map(
+                                it -> miniMsg.deserialize(
+                                        it,
+                                        Placeholder.unparsed("x", String.valueOf(posX)),
+                                        Placeholder.unparsed("y", String.valueOf(posY)),
+                                        Placeholder.unparsed("z", String.valueOf(posZ)),
+                                        Placeholder.unparsed("uses", String.valueOf(finalRemainingUses1))
+                                ).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+                        ).toList()
+                );
             });
 
             // Check if the player should be sent a message
             if (!crystalPositionUpdatedMessage.isEmpty()) {
-                player.sendMessage(Component.text(crystalPositionUpdatedMessage));
+                player.sendMessage(miniMsg.deserialize(crystalPositionUpdatedMessage));
             }
 
             tpCrystalsLoader.getSLF4JLogger().info("Player %s updated location of teleportation crystal to (%s) %s %s %s".formatted(player.getName(), player.getWorld().getName(), posX, posY, posZ));
@@ -168,9 +223,35 @@ public class TeleportationCrystal implements Listener {
         // Check if the crystal has a saved location by checking the saved world, also check if the player should be sent a message
         if (savedWorld.isEmpty() && !crystalNoPositionMessage.isEmpty()) {
             // No saved location
-            player.sendMessage(Component.text(crystalNoPositionMessage));
+            player.sendMessage(miniMsg.deserialize(crystalNoPositionMessage));
             return;
         }
+
+        // Check if the crystal has 1 use remaining
+        if (remainingUses <= 1) {
+            // Set the amount of the item in the player's inventory to 0
+            item.setAmount(0);
+        }
+
+        // Remove a use from the item
+        remainingUses -= 1;
+        int finalRemainingUses = remainingUses;
+
+        item.editMeta(itemMeta -> {
+            itemMeta.getPersistentDataContainer().set(usesKey, PersistentDataType.INTEGER, finalRemainingUses);
+
+            itemMeta.lore(
+                    locationSetLoreStrings.stream().map(
+                            it -> miniMsg.deserialize(
+                                    it,
+                                    Placeholder.unparsed("x", String.valueOf(posX)),
+                                    Placeholder.unparsed("y", String.valueOf(posY)),
+                                    Placeholder.unparsed("z", String.valueOf(posZ)),
+                                    Placeholder.unparsed("uses", String.valueOf(finalRemainingUses))
+                            ).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+                    ).toList()
+            );
+        });
 
         // Saved location exists, get the location and teleport the player
         int[] savedLocation = item.getItemMeta().getPersistentDataContainer().get(locationKey, PersistentDataType.INTEGER_ARRAY);
@@ -180,16 +261,7 @@ public class TeleportationCrystal implements Listener {
         tpCrystalsLoader.getSLF4JLogger().info("Player %s teleported to (%s) %s %s %s using a teleportation crystal".formatted(player.getName(), savedWorld, savedLocation[0], savedLocation[1], savedLocation[2]));
 
         if (!crystalTeleportMessage.isEmpty()) {
-            player.sendMessage(Component.text(crystalTeleportMessage));
-        }
-    }
-
-    private NamedTextColor convertToNamedTextColor(String colorString) {
-        // Convert the string to a NamedTextColor object
-        try {
-            return NamedTextColor.NAMES.valueOr(colorString, NamedTextColor.BLUE);
-        } catch (IllegalArgumentException e) {
-            return null;
+            player.sendMessage(miniMsg.deserialize(crystalTeleportMessage));
         }
     }
 }

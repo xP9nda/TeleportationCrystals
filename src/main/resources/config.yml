@@ -1,35 +1,52 @@
 #### TeleportationCrystals config
 
 ## crystal_item (the item used for the teleportation crystal)
-# default: EMERALD
-# accepted: see https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Material.html for all acceptable items
+# accepted: see https://jd.papermc.io/paper/1.19/org/bukkit/Material.html for all acceptable items
 crystal_item: EMERALD
 
 ## crystal_name (the name of the teleportation crystal)
-# default: "Teleportation Crystal"
-crystal_name: "Teleportation Crystal"
+# accepted: see https://docs.advntr.dev/minimessage/format.html for color code usage
+crystal_name: "<#75A1BF>Teleportation Crystal"
 
-## crystal_name_color (the color of the teleportation crystal's name)
-# default: BLUE
-# accepted: "AQUA", "BLACK", "BLUE", "DARK_AQUA", "DARK_BLUE", "DARK_GRAY", "DARK_GREEN", "DARK_PURPLE", "DARK_RED", "GOLD", "GRAY", "GREEN", "LIGHT_PURPLE", "RED", "WHITE", "YELLOW"
-crystal_name_color: "BLUE"
+## crystal_default_uses (the amount of uses each crystal gets by default)
+crystal_default_uses: 3
+
+## crystal_lore_location_unset (the lore of the teleport crystal when the location has not been set)
+# see https://docs.advntr.dev/minimessage/format.html for color code usage
+# accepted: <x> <y> <z> for crystal's saved x, y, z coordinates | <uses> for remaining uses before the crystal breaks
+crystal_lore_location_unset:
+  - "<#89C9B8>• Teleport Location: <#75A1BF>unspecified"
+  - "<#89C9B8>• Uses Remaining: <#75A1BF><uses>"
+  - ""
+  - "<#75A1BF>Shift Right Click<#89C9B8> to set location"
+  - "<#75A1BF>Right Click<#89C9B8> to teleport"
+
+## crystal_lore_location_set (the lore of the teleport crystal when the location has been set)
+# accepted: <x> <y> <z> for crystal's saved x, y, z coordinates | <uses> for remaining uses before the crystal breaks
+crystal_lore_location_set:
+  - "<#89C9B8>• Teleport Location: <#75A1BF><x>, <y>, <z>"
+  - "<#89C9B8>• Uses Remaining: <#75A1BF><uses>"
+  - ""
+  - "<#75A1BF>Shift Right Click<#89C9B8> to override location"
+  - "<#75A1BF>Right Click<#89C9B8> to teleport"
 
 ## crystal_command_message (the message that the player who is given the crystal through the /teleportationcrystal command should receive)
-# default: "You have been given a teleport crystal."
+# accepted: <player> for the name of the player who ran the command | <uses> for remaining uses before the crystal breaks
 # leave as an empty string ("") if you want no message to send
-crystal_command_message: "You have been given a teleport crystal."
+crystal_command_message: "<#89C9B8>• You have been given a<#75A1BF> teleportation crystal with<#75A1BF> <uses> uses<#89C9B8> by<#75A1BF> <player><#89C9B8>."
 
 ## crystal_position_updated_message (the message to send to the player whenever a crystal's position is updated)
-# default: "Teleport crystal position updated."
 # leave as an empty string ("") if you want no message to send
-crystal_position_updated_message: "Teleport crystal position updated."
+crystal_position_updated_message: "<#89C9B8>• Crystal position updated."
 
 ## crystal_no_position_message (the message to send to the player if they try to use a crystal with no set location)
-# default: "This crystal has no saved location. Shift right click while holding the crystal to set a location."
 # leave as an empty string ("") if you want no message to send
-crystal_no_position_message: "This crystal has no saved location. Shift right click while holding the crystal to set a location."
+crystal_no_position_message: "<#89C9B8>• This crystal has no saved location.<br><#75A1BF>• Shift right click while holding the crystal to set a location"
 
 ## crystal_teleport_message (the message to send whenever the player teleports using a teleport crystal)
-# default: "Woooosh..."
 # leave as an empty string ("") if you want no message to send
-crystal_teleport_message: "Woooosh..."
+crystal_teleport_message: "<#89C9B8>Woooosh..."
+
+## reload_message (the message that the player receives when they reload the teleportationcrystals config)
+# leave as an empty string ("") if you want no message to send
+reload_message: "<#89C9B8>• TeleportationCrystals config reloaded."
