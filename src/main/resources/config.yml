@@ -13,7 +13,7 @@ crystal_default_uses: 3
 
 ## crystal_lore_location_unset (the lore of the teleport crystal when the location has not been set)
 # see https://docs.advntr.dev/minimessage/format.html for color code usage
-# accepted: <x> <y> <z> for crystal's saved x, y, z coordinates | <uses> for remaining uses before the crystal breaks
+# accepted: <uses> for remaining uses before the crystal breaks
 crystal_lore_location_unset:
   - "<#89C9B8>• Teleport Location: <#75A1BF>unspecified"
   - "<#89C9B8>• Uses Remaining: <#75A1BF><uses>"
@@ -30,10 +30,10 @@ crystal_lore_location_set:
   - "<#75A1BF>Shift Right Click<#89C9B8> to override location"
   - "<#75A1BF>Right Click<#89C9B8> to teleport"
 
-## crystal_command_message (the message that the player who is given the crystal through the /teleportationcrystal command should receive)
+## crystal_command_message (the message that the player will see when they are given a crystal)
 # accepted: <player> for the name of the player who ran the command | <uses> for remaining uses before the crystal breaks
 # leave as an empty string ("") if you want no message to send
-crystal_command_message: "<#89C9B8>• You have been given a<#75A1BF> teleportation crystal with<#75A1BF> <uses> uses<#89C9B8> by<#75A1BF> <player><#89C9B8>."
+crystal_command_message: "<#89C9B8>• You have been given a<#75A1BF> teleportation crystal<#89C9B8> with<#75A1BF> <uses> uses<#89C9B8> by<#75A1BF> <player><#89C9B8>."
 
 ## crystal_position_updated_message (the message to send to the player whenever a crystal's position is updated)
 # leave as an empty string ("") if you want no message to send
@@ -50,3 +50,28 @@ crystal_teleport_message: "<#89C9B8>Woooosh..."
 ## reload_message (the message that the player receives when they reload the teleportationcrystals config)
 # leave as an empty string ("") if you want no message to send
 reload_message: "<#89C9B8>• TeleportationCrystals config reloaded."
+
+## sound_receive (the sound that the player will hear when they are given a crystal)
+# accepted: see https://jd.papermc.io/paper/1.19/org/bukkit/Sound.html for all acceptable sound effects
+# leave as empty () if you want no sound to play
+sound_receive: ENTITY_ITEM_PICKUP
+
+## sound_setting_location (the sound that the player will hear when they set the location of a crystal)
+# accepted: see https://jd.papermc.io/paper/1.19/org/bukkit/Sound.html for all acceptable sound effects
+# leave as empty () if you want no sound to play
+sound_setting_location: BLOCK_ENCHANTMENT_TABLE_USE
+
+## sound_teleporting (the sound that the player will hear when they teleport using a crystal)
+# accepted: see https://jd.papermc.io/paper/1.19/org/bukkit/Sound.html for all acceptable sound effects
+# leave as empty () if you want no sound to play
+sound_teleporting: ITEM_CHORUS_FRUIT_TELEPORT
+
+## sound_teleporting_fail (the sound that the player will hear when they attempt to teleport but no location has been set)
+# accepted: see https://jd.papermc.io/paper/1.19/org/bukkit/Sound.html for all acceptable sound effects
+# leave as empty () if you want no sound to play
+sound_teleporting_fail: BLOCK_STONE_FALL
+
+## sound_crystal_breaks (the sound that the player will hear when a crystal breaks)
+# accepted: see https://jd.papermc.io/paper/1.19/org/bukkit/Sound.html for all acceptable sound effects
+# leave as empty () if you want no sound to play
+sound_crystal_breaks: ENTITY_ENDER_EYE_DEATH
