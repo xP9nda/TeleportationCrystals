@@ -1,3 +1,5 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 plugins {
     id("java")
     id("com.github.johnrengelman.shadow") version "8.1.1"
@@ -59,4 +61,8 @@ tasks.named<ProcessResources>("processResources") {
     filesMatching("plugin.yml") {
         expand(props)
     }
+}
+
+tasks.withType<ShadowJar> {
+    archiveFileName.set(String.format("TeleporationCrystals-%s-bukkit.jar", version));
 }
