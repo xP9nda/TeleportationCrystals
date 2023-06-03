@@ -8,7 +8,7 @@ plugins {
 
 group = "panda"
 version = "1.0"
-description = "A simple and highly customisable plugin which adds teleportation crystal items."
+description = "A simple and customisable plugin which adds teleportation crystal items to your server."
 
 repositories {
     mavenCentral()
