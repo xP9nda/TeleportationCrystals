@@ -1,6 +1,3 @@
-// TODO:
-//  - fix crafting recipe stacking (uuid is the same as the crafting recipe gives same itemstack every time)
-
 package panda.teleportationcrystals.handlers;
 
 import cloud.commandframework.annotations.Argument;
