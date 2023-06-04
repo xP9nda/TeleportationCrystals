@@ -234,16 +234,16 @@ public class TeleportationCrystal implements Listener {
             uses = crystalDefaultUses;
         }
 
-        // Add the crystal to the player's inventory
-        player.getInventory().addItem(this.teleportationCrystalItem);
-
         // Remove the old crafting recipe
         if (teleportationCrystalCraftingEnabled == true) {
             tpCrystalsLoader.getServer().removeRecipe(this.crystalCraftingRecipeKey);
         }
+
         // Update the itemstack and recipe
         updateTeleportationCrystalItemStack(uses);
 
+        // Add the crystal to the player's inventory
+        player.getInventory().addItem(this.teleportationCrystalItem);
 
         // Check if the receiver should be sent a message
         if (!receivedCrystalMessage.isEmpty()) {
@@ -253,6 +253,14 @@ public class TeleportationCrystal implements Listener {
                     Placeholder.unparsed("uses", String.valueOf(uses))
             ));
         }
+
+        // Remove the old crafting recipe
+        if (teleportationCrystalCraftingEnabled == true) {
+            tpCrystalsLoader.getServer().removeRecipe(this.crystalCraftingRecipeKey);
+        }
+
+        // Update the itemstack and recipe back to the default uses
+        updateTeleportationCrystalItemStack(crystalDefaultUses);
 
         // Sound effect
         if (!receiveSoundString.isEmpty()) {
