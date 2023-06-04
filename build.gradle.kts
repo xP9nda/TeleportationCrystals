@@ -64,5 +64,5 @@ tasks.named<ProcessResources>("processResources") {
 }
 
 tasks.withType<ShadowJar> {
-    archiveFileName.set(String.format("TeleporationCrystals-%s-paper.jar", version));
+    archiveFileName.set(String.format("TeleportationCrystals-%s-paper.jar", version));
 }
