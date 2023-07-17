@@ -2,6 +2,11 @@
 
 TeleportationCrystals is a customisable paper plugin for 1.19.4 which introduces teleportation crystals to your server.
 
+![modrinth downloads](https://img.shields.io/modrinth/dt/oTh4M5Qa?color=gree&label=downloads%20on%20modrinth&logo=modrinth)
+
+[![paper](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/paper_64h.png)](https://papermc.io/)
+[![modrinth](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/modrinth_64h.png)](https://modrinth.com/plugin/teleportationcrystals)
+[![github](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/github_64h.png)](https://github.com/xP9nda/TeleportationCrystals)
 ----
 
 ### Usage
@@ -14,4 +19,5 @@ TeleportationCrystals is currently compatible with [Paper](https://papermc.io/) 
 
 ### Resources
 Interested in using my plugin?
-Check out the [releases](https://github.com/xP9nda/TeleportationCrystals/releases) and [wiki](https://github.com/xP9nda/TeleportationCrystals/wiki) to learn more.
+
+[![generic](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/documentation/generic_64h.png)](https://github.com/xP9nda/TeleportationCrystals/wiki)
