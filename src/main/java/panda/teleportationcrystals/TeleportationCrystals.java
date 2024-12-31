@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 import panda.teleportationcrystals.handlers.TeleportationCrystal;
+import panda.teleportationcrystals.stats.Metrics;
 
 public final class TeleportationCrystals extends JavaPlugin {
 
@@ -17,6 +18,9 @@ public final class TeleportationCrystals extends JavaPlugin {
 
         // Config
         saveDefaultConfig();
+
+        // bstats metrics
+        Metrics metrics = new Metrics(this, 24287);
 
         // Commands and events
         TeleportationCrystal teleportationCrystal = new TeleportationCrystal(this);
