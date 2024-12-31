@@ -167,6 +167,14 @@ public class TeleportationCrystal implements Listener {
     private void updateTeleportationCrystalItemStack(int uses, boolean infiniteUses) {
         this.teleportationCrystalItem = new ItemStack(crystalMaterial);
 
+        String usesString = "";
+        if (infiniteUses) {
+            usesString = "infinite";
+        } else {
+            usesString = String.valueOf(uses);
+        }
+        final String finalUsesString = usesString;
+
         this.teleportationCrystalItem.editMeta(itemMeta -> {
             itemMeta.displayName(miniMsg.deserialize(crystalItemName).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE));
 
@@ -182,7 +190,7 @@ public class TeleportationCrystal implements Listener {
                     locationUnsetLoreStrings.stream().map(
                             it -> miniMsg.deserialize(
                                     it,
-                                    Placeholder.unparsed("uses", String.valueOf(uses))
+                                    Placeholder.unparsed("uses", finalUsesString)
                             ).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
                     ).toList()
             );
