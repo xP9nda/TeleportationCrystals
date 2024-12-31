@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "panda"
-version = "1.0.1"
+version = "1.1.0"
 description = "A simple and customisable plugin which adds teleportation crystal items to your server."
 
 repositories {

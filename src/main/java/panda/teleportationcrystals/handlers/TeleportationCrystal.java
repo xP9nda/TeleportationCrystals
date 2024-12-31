@@ -37,6 +37,9 @@ public class TeleportationCrystal implements Listener {
     private final NamespacedKey locationKey;
     private final NamespacedKey worldKey;
     private final NamespacedKey usesKey;
+    private final NamespacedKey pitchKey;
+    private final NamespacedKey yawKey;
+    private final NamespacedKey infiniteUsesKey;
     private final NamespacedKey crystalUUIDKey;
     private final NamespacedKey crystalCraftingRecipeKey;
 
@@ -49,6 +52,7 @@ public class TeleportationCrystal implements Listener {
     private String crystalNoPositionMessage;
     private String crystalTeleportMessage;
     private String reloadMessage;
+    private String invalidUsesMessage;
     private int crystalDefaultUses;
     private final TeleportationCrystals tpCrystalsLoader;
     private List<String> locationUnsetLoreStrings;
@@ -78,11 +82,14 @@ public class TeleportationCrystal implements Listener {
         this.locationKey = new NamespacedKey(loader, "location");
         this.worldKey = new NamespacedKey(loader, "world");
         this.usesKey = new NamespacedKey(loader, "uses");
+        this.pitchKey = new NamespacedKey(loader, "pitch");
+        this.yawKey = new NamespacedKey(loader, "yaw");
+        this.infiniteUsesKey = new NamespacedKey(loader, "infinite_uses");
         this.crystalUUIDKey = new NamespacedKey(loader, "uuid");
         this.crystalCraftingRecipeKey = new NamespacedKey(loader, "panda.teleportationcrystalrecipe");
 
         reloadTeleportationCrystalConfig();
-        updateTeleportationCrystalItemStack(crystalDefaultUses);
+        updateTeleportationCrystalItemStack(crystalDefaultUses, false);
     }
 
     private void reloadTeleportationCrystalConfig() {
@@ -112,15 +119,10 @@ public class TeleportationCrystal implements Listener {
         locationUnsetLoreStrings = config.getStringList("crystal_lore_location_unset");
         locationSetLoreStrings = config.getStringList("crystal_lore_location_set");
         reloadMessage = config.getString("reload_message");
+        invalidUsesMessage = config.getString("invalid_uses_provided_message");
         crystalDefaultUses = config.getInt("crystal_default_uses");
         crystalRecipeStrings = config.getStringList("crystal_recipe");
         teleportationCrystalCraftingEnabled = config.getBoolean("crystal_recipe_enabled");
-
-        // Check if a recipe is already set when the crafting is disabled
-        if (teleportationCrystalCraftingEnabled == false && teleportationCrystalRecipe != null) {
-            // Remove the recipe if it exists
-            tpCrystalsLoader.getServer().removeRecipe(this.crystalCraftingRecipeKey);
-        }
 
         receiveSoundString = config.getString("sound_receive");
         setLocationSoundString = config.getString("sound_setting_location");
@@ -162,9 +164,7 @@ public class TeleportationCrystal implements Listener {
     }
 
     // Update the crystal item and give it a random UUID to ensure non stack-ability as well as set the number of uses
-    private void updateTeleportationCrystalItemStack(int uses) {
-        Integer finalUses = uses;
-
+    private void updateTeleportationCrystalItemStack(int uses, boolean infiniteUses) {
         this.teleportationCrystalItem = new ItemStack(crystalMaterial);
 
         this.teleportationCrystalItem.editMeta(itemMeta -> {
@@ -174,25 +174,30 @@ public class TeleportationCrystal implements Listener {
             itemMeta.getPersistentDataContainer().set(this.worldKey, PersistentDataType.STRING, "");
             itemMeta.getPersistentDataContainer().set(this.itemKey, PersistentDataType.STRING, "panda.teleportation_crystal");
 
-            itemMeta.getPersistentDataContainer().set(this.usesKey, PersistentDataType.INTEGER, finalUses);
+            itemMeta.getPersistentDataContainer().set(this.usesKey, PersistentDataType.INTEGER, uses);
+            itemMeta.getPersistentDataContainer().set(this.infiniteUsesKey, PersistentDataType.BOOLEAN, infiniteUses);
             itemMeta.getPersistentDataContainer().set(this.crystalUUIDKey, PersistentDataType.STRING, UUID.randomUUID().toString());
 
             itemMeta.lore(
                     locationUnsetLoreStrings.stream().map(
                             it -> miniMsg.deserialize(
                                     it,
-                                    Placeholder.unparsed("uses", String.valueOf(finalUses))
+                                    Placeholder.unparsed("uses", String.valueOf(uses))
                             ).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
                     ).toList()
             );
         });
 
         // Setup crafting recipe
-        if (teleportationCrystalCraftingEnabled == true) {
+        if (teleportationCrystalCraftingEnabled) {
+            // If there is already a recipe, remove it before updating it to this new one
+            if (teleportationCrystalRecipe != null) {
+                tpCrystalsLoader.getServer().removeRecipe(this.crystalCraftingRecipeKey);
+            }
+
             teleportationCrystalRecipe = new ShapedRecipe(this.crystalCraftingRecipeKey, this.teleportationCrystalItem);
             teleportationCrystalRecipe.shape("012", "345", "678");
 
-            boolean validRecipe = true;
             for ( int i = 0 ; i < crystalRecipeStrings.toArray().length ; i++ ) {
                 String currentRecipeItem = crystalRecipeStrings.get(i);
 
@@ -207,60 +212,91 @@ public class TeleportationCrystal implements Listener {
                     tpCrystalsLoader.getSLF4JLogger().warn("Recipe material '%s' in 'crystals_recipe' in config.yml is an invalid item. Recipe will not be added."
                             .formatted(currentRecipeItem)
                     );
-                    validRecipe = false;
                     return;
                 }
 
                 String indexString = Integer.toString(i);
-                Character recipeCharacterIdentifier = indexString.charAt(0);
+                char recipeCharacterIdentifier = indexString.charAt(0);
                 teleportationCrystalRecipe.setIngredient(recipeCharacterIdentifier, currentRecipeItemMaterial);
             }
 
-            // Check if the recipe is valid and if it is, add it as a recipe
-            if (!validRecipe) {
-                return;
-            }
-
+            // Add the recipe
             tpCrystalsLoader.getServer().addRecipe(teleportationCrystalRecipe);
+
+        // If the recipe should be disabled, remove it
+        } else {
+            // Remove the recipe if it exists
+            if (teleportationCrystalRecipe != null) {
+                tpCrystalsLoader.getServer().removeRecipe(this.crystalCraftingRecipeKey);
+            }
         }
     }
 
     // Command for giving players teleportation crystals
     @CommandMethod("teleportationcrystal|teleportcrystal|tpcrystal give <player> [uses]")
     @CommandPermission("panda.teleportationcrystals.give")
-    private void onTeleportationCrystalGive(Player commandSender, @Argument("player") Player player , @Argument("uses") @Range(min = "1", max = "5000") Integer uses) {
+    private void onTeleportationCrystalGive(Player commandSender, @Argument("player") Player player , @Argument("uses") String uses) {
+        int usesInt;
+        boolean infiniteUses = false;
+
         // Check if the uses is defined
-        if (uses == null) {
-            uses = crystalDefaultUses;
+        if (uses == null || uses.isEmpty()) {
+            usesInt = crystalDefaultUses;
+
+        // If the uses is a valid number, set the uses to the provided number
+        } else {
+            // If the uses should be infinite
+            if (uses.equals("infinite") || uses.equals("inf")) {
+                infiniteUses = true;
+                usesInt = 0;
+
+            // Check if the uses is a valid number
+            } else {
+                try {
+                    usesInt = Integer.parseInt(uses);
+                } catch (NumberFormatException e) {
+                    // If it's not valid, send the player a message and return
+                    commandSender.sendMessage(miniMsg.deserialize(invalidUsesMessage));
+                    return;
+                }
+            }
         }
 
         // Remove the old crafting recipe
-        if (teleportationCrystalCraftingEnabled == true) {
+        if (teleportationCrystalCraftingEnabled) {
             tpCrystalsLoader.getServer().removeRecipe(this.crystalCraftingRecipeKey);
         }
 
-        // Update the itemstack and recipe
-        updateTeleportationCrystalItemStack(uses);
+        // Update the itemstack and recipe to the new uses and infinite uses
+        updateTeleportationCrystalItemStack(usesInt, infiniteUses);
 
         // Add the crystal to the player's inventory
         player.getInventory().addItem(this.teleportationCrystalItem);
 
         // Check if the receiver should be sent a message
         if (!receivedCrystalMessage.isEmpty()) {
+            String usesMessage = "";
+
+            if (infiniteUses) {
+                usesMessage = "infinite";
+            } else {
+                usesMessage = String.valueOf(usesInt);
+            }
+
             player.sendMessage(miniMsg.deserialize(
                     receivedCrystalMessage,
                     Placeholder.unparsed("player", commandSender.getName()),
-                    Placeholder.unparsed("uses", String.valueOf(uses))
+                    Placeholder.unparsed("uses", usesMessage)
             ));
         }
 
         // Remove the old crafting recipe
-        if (teleportationCrystalCraftingEnabled == true) {
+        if (teleportationCrystalCraftingEnabled) {
             tpCrystalsLoader.getServer().removeRecipe(this.crystalCraftingRecipeKey);
         }
 
         // Update the itemstack and recipe back to the default uses
-        updateTeleportationCrystalItemStack(crystalDefaultUses);
+        updateTeleportationCrystalItemStack(crystalDefaultUses, false);
 
         // Sound effect
         if (!receiveSoundString.isEmpty()) {
@@ -275,7 +311,7 @@ public class TeleportationCrystal implements Listener {
         tpCrystalsLoader.getSLF4JLogger().info("Config reloaded");
         tpCrystalsLoader.reloadConfig();
         reloadTeleportationCrystalConfig();
-        updateTeleportationCrystalItemStack(crystalDefaultUses);
+        updateTeleportationCrystalItemStack(crystalDefaultUses, false);
 
         // Check if the reload message should be sent
         if (!reloadMessage.isEmpty()) {
@@ -286,9 +322,16 @@ public class TeleportationCrystal implements Listener {
     // Command for plugin info
     @CommandMethod("teleportationcrystal|teleportcrystal|tpcrystal info|information")
     private void onTeleportationCrystalInformation(Player commandSender) {
+        String infoMessage = "<#89C9B8><b>TeleportationCrystals</b>";
+        infoMessage += "<#75A1BF> by xP9nda\n\n";
+        infoMessage += "<#89C9B8>This server is running version <#75A1BF><version>\n";
+        infoMessage += "<#89C9B8>Source code is available on <click:open_url:'https://github.com/xP9nda/TeleportationCrystals'><u>GitHub</u></click>";
+        infoMessage += " and can be downloaded on <click:open_url:'https://modrinth.com/plugin/teleportationcrystals'><u>Modrinth</u></click>";
+
         commandSender.sendMessage(
             miniMsg.deserialize(
-            "<#89C9B8>TeleportationCrystals<#75A1BF> by xP9nda<br><#89C9B8>Source code available on<#75A1BF> <click:open_url:'https://github.com/xP9nda/TeleportationCrystals'><u>GitHub</u></click>"
+                infoMessage,
+                Placeholder.unparsed("version", tpCrystalsLoader.getPluginMeta().getVersion())
             )
         );
     }
@@ -303,9 +346,6 @@ public class TeleportationCrystal implements Listener {
         }
 
         ItemStack craftingResult = craftingRecipe.getResult();
-        if (craftingResult == null) {
-            return;
-        }
 
         // Check if the result is the same as the item stack
         if (!craftingResult.isSimilar(teleportationCrystalRecipe.getResult())) {
@@ -313,11 +353,11 @@ public class TeleportationCrystal implements Listener {
         }
 
         // Remove the old crafting recipe
-        if (teleportationCrystalCraftingEnabled == true) {
+        if (teleportationCrystalCraftingEnabled) {
             tpCrystalsLoader.getServer().removeRecipe(this.crystalCraftingRecipeKey);
         }
         // Update the itemstack and recipe
-        updateTeleportationCrystalItemStack(crystalDefaultUses);
+        updateTeleportationCrystalItemStack(crystalDefaultUses, false);
     }
 
     // Check player interactions for crystal usage
@@ -344,20 +384,45 @@ public class TeleportationCrystal implements Listener {
         int posZ = playerLocation.getBlockZ();
 
         // Get the remaining uses of the crystal
-        int remainingUses = item.getItemMeta().getPersistentDataContainer().get(usesKey, PersistentDataType.INTEGER);
+        int remainingUses = crystalDefaultUses;
+        // Check if the item has the uses key
+        if (item.getItemMeta().getPersistentDataContainer().has(usesKey, PersistentDataType.INTEGER)) {
+            remainingUses = item.getItemMeta().getPersistentDataContainer().get(usesKey, PersistentDataType.INTEGER);
+        }
+
+        // Get whether the crystal has infinite uses
+        boolean infiniteUses = false;
+        // If the item does not have the infinite uses key, set it to false
+        if (item.getItemMeta().getPersistentDataContainer().has(infiniteUsesKey, PersistentDataType.BOOLEAN)) {
+            infiniteUses = item.getItemMeta().getPersistentDataContainer().get(infiniteUsesKey, PersistentDataType.BOOLEAN);
+        }
 
         // Check if the player is sneaking
         if (player.isSneaking()) {
-            // Set the teleport location
-            int finalRemainingUses1 = remainingUses;
+            // Work out the description text for number of uses remaining
+            String usesMessage = "";
 
+            if (infiniteUses) {
+                usesMessage = "infinite";
+            } else {
+                usesMessage = String.valueOf(remainingUses);
+            }
+
+            final String finalUsesMessage = usesMessage;
+
+            // Edit the item's metadata
             item.editMeta(itemMeta -> {
+                // Set the new location, world, pitch, yaw
                 itemMeta.getPersistentDataContainer().set(locationKey, PersistentDataType.INTEGER_ARRAY, new int[] { posX, posY, posZ });
                 itemMeta.getPersistentDataContainer().set(worldKey, PersistentDataType.STRING, playerLocation.getWorld().getName());
+                itemMeta.getPersistentDataContainer().set(pitchKey, PersistentDataType.FLOAT, playerLocation.getPitch());
+                itemMeta.getPersistentDataContainer().set(yawKey, PersistentDataType.FLOAT, playerLocation.getYaw());
 
+                // Make the item glow
                 itemMeta.addEnchant(Enchantment.CHANNELING, 1, true);
                 itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
 
+                // Set up the item lore
                 itemMeta.lore(
                         locationSetLoreStrings.stream().map(
                                 it -> miniMsg.deserialize(
@@ -365,7 +430,8 @@ public class TeleportationCrystal implements Listener {
                                         Placeholder.unparsed("x", String.valueOf(posX)),
                                         Placeholder.unparsed("y", String.valueOf(posY)),
                                         Placeholder.unparsed("z", String.valueOf(posZ)),
-                                        Placeholder.unparsed("uses", String.valueOf(finalRemainingUses1))
+                                        Placeholder.unparsed("uses", finalUsesMessage),
+                                        Placeholder.unparsed("world", playerLocation.getWorld().getName())
                                 ).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
                         ).toList()
                 );
@@ -389,7 +455,9 @@ public class TeleportationCrystal implements Listener {
         // If the player is not sneaking
         // Teleport the player to the saved location
         String savedWorld = item.getItemMeta().getPersistentDataContainer().get(worldKey, PersistentDataType.STRING);
+
         // Check if the crystal has a saved location by checking the saved world, also check if the player should be sent a message
+        assert savedWorld != null;
         if (savedWorld.isEmpty() && !crystalNoPositionMessage.isEmpty()) {
             // No saved location
             player.sendMessage(miniMsg.deserialize(crystalNoPositionMessage));
@@ -402,40 +470,58 @@ public class TeleportationCrystal implements Listener {
             return;
         }
 
-        // Check if the crystal has 1 use remaining
-        if (remainingUses <= 1) {
-            // Set the amount of the item in the player's inventory to 0
-            item.setAmount(0);
+        // If the crystal does not have infinite uses, then do logic to remove a use
+        if (!infiniteUses) {
+            // Check if the crystal has 1 use remaining
+            if (remainingUses <= 1) {
+                // Set the amount of the item in the player's inventory to 0
+                item.setAmount(0);
 
-            // Sound effect
-            if (!breakSoundString.isEmpty()) {
-                player.playSound(playerLocation, breakSound, 1, 1);
+                // Sound effect
+                if (!breakSoundString.isEmpty()) {
+                    player.playSound(playerLocation, breakSound, 1, 1);
+                }
             }
+
+            // Remove a use from the item
+            remainingUses -= 1;
+            int finalRemainingUses = remainingUses;
+
+            item.editMeta(itemMeta -> {
+                itemMeta.getPersistentDataContainer().set(usesKey, PersistentDataType.INTEGER, finalRemainingUses);
+
+                itemMeta.lore(
+                        locationSetLoreStrings.stream().map(
+                                it -> miniMsg.deserialize(
+                                        it,
+                                        Placeholder.unparsed("x", String.valueOf(posX)),
+                                        Placeholder.unparsed("y", String.valueOf(posY)),
+                                        Placeholder.unparsed("z", String.valueOf(posZ)),
+                                        Placeholder.unparsed("uses", String.valueOf(finalRemainingUses)),
+                                        Placeholder.unparsed("world", savedWorld)
+                                ).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+                        ).toList()
+                );
+            });
         }
-
-        // Remove a use from the item
-        remainingUses -= 1;
-        int finalRemainingUses = remainingUses;
-
-        item.editMeta(itemMeta -> {
-            itemMeta.getPersistentDataContainer().set(usesKey, PersistentDataType.INTEGER, finalRemainingUses);
-
-            itemMeta.lore(
-                    locationSetLoreStrings.stream().map(
-                            it -> miniMsg.deserialize(
-                                    it,
-                                    Placeholder.unparsed("x", String.valueOf(posX)),
-                                    Placeholder.unparsed("y", String.valueOf(posY)),
-                                    Placeholder.unparsed("z", String.valueOf(posZ)),
-                                    Placeholder.unparsed("uses", String.valueOf(finalRemainingUses))
-                            ).decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE)
-                    ).toList()
-            );
-        });
 
         // Saved location exists, get the location and teleport the player
         int[] savedLocation = item.getItemMeta().getPersistentDataContainer().get(locationKey, PersistentDataType.INTEGER_ARRAY);
+        assert savedLocation != null;
         Location crystalTeleportLocation = new Location(Bukkit.getWorld(savedWorld), savedLocation[0], savedLocation[1], savedLocation[2]);
+
+        // Get the saved pitch and yaw and update the location should the keys exist
+        // Check if the item has the pitch key
+        if (item.getItemMeta().getPersistentDataContainer().has(pitchKey, PersistentDataType.FLOAT)) {
+            float pitch = item.getItemMeta().getPersistentDataContainer().get(pitchKey, PersistentDataType.FLOAT);
+            crystalTeleportLocation.setPitch(pitch);
+        }
+
+        // Check if the item has the yaw key
+        if (item.getItemMeta().getPersistentDataContainer().has(yawKey, PersistentDataType.FLOAT)) {
+            float yaw = item.getItemMeta().getPersistentDataContainer().get(yawKey, PersistentDataType.FLOAT);
+            crystalTeleportLocation.setYaw(yaw);
+        }
 
         player.teleportAsync(crystalTeleportLocation);
 

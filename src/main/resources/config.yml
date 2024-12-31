@@ -34,20 +34,24 @@ crystal_default_uses: 3
 
 ## crystal_lore_location_unset (the lore of the teleport crystal when the location has not been set)
 # see https://docs.advntr.dev/minimessage/format.html for color code usage
-# accepted: <uses> for remaining uses before the crystal breaks
+# accepted:
+#  <uses> for remaining uses before the crystal breaks
 crystal_lore_location_unset:
   - "<#89C9B8>• Teleport Location: <#75A1BF>unspecified"
   - "<#89C9B8>• Uses Remaining: <#75A1BF><uses>"
-  - ""
+  - " "
   - "<#75A1BF>Shift Right Click<#89C9B8> to set location"
   - "<#75A1BF>Right Click<#89C9B8> to teleport"
 
 ## crystal_lore_location_set (the lore of the teleport crystal when the location has been set)
-# accepted: <x> <y> <z> for crystal's saved x, y, z coordinates | <uses> for remaining uses before the crystal breaks
+# accepted:
+#  <x> <y> <z> for crystal's saved x, y, z coordinates
+#  <uses> for remaining uses before the crystal breaks
+#  <world> for the world the crystal is set to
 crystal_lore_location_set:
-  - "<#89C9B8>• Teleport Location: <#75A1BF><x>, <y>, <z>"
+  - "<#89C9B8>• Teleport Location: <#75A1BF><x>, <y>, <z> <#89C9B8>(<world>)"
   - "<#89C9B8>• Uses Remaining: <#75A1BF><uses>"
-  - ""
+  - " "
   - "<#75A1BF>Shift Right Click<#89C9B8> to override location"
   - "<#75A1BF>Right Click<#89C9B8> to teleport"
 
@@ -67,6 +71,10 @@ crystal_no_position_message: "<#89C9B8>• This crystal has no saved location.<b
 ## crystal_teleport_message (the message to send whenever the player teleports using a teleport crystal)
 # leave as an empty string ("") if you want no message to send
 crystal_teleport_message: "<#89C9B8>Woooosh..."
+
+## invalid_uses_provided_message (the message to send to the command sender if they provide an invalid number of uses in the /give command)
+# leave as an empty string ("") if you want no message to send
+invalid_uses_provided_message: "<#89C9B8>• Invalid number of uses provided."
 
 ## reload_message (the message that the player receives when they reload the teleportationcrystals config)
 # leave as an empty string ("") if you want no message to send
